@@ -22,13 +22,13 @@ DigitalOut Digt0_L(D3);
 DigitalOut Digt1_L(D5);
 PwmOut mypwm_L(D4);
 
-DigitalOut Digt0_F(D6);
-DigitalOut Digt1_F(D8);
-PwmOut mypwm_F(D7);
+//DigitalOut Digt0_F(D6);    Maybe they do not need them 'cause Forward-photo is only the function which read white or brack
+//DigitalOut Digt1_F(D8);
+//PwmOut mypwm_F(D7);
 
-AnalogIn Ain1(A0);
-AnalogIn Ain2(A1);
-AnalogIn Ain3(A2);
+AnalogIn Ain1(A0);   // R
+AnalogIn Ain2(A1);   // L
+AnalogIn Ain3(A2);   // F
 
 float max_min_control(float cont_val){
 
@@ -79,6 +79,28 @@ float PID_L(float perc_L){
     return max_min_control(p+i+d);
 }
 
+void L_R_control(float perc_R,float perc_L){
+
+    if( (perc_R<20) && (perc_L<20) ){
+
+        mypwm_R.write(0.5);
+        mypwm_L.write(0.5);
+    }
+    else if( perc_R < perc_L ){
+
+    }
+    else if( perc_R > perc_L ){
+
+    }
+    else{
+
+        mypwm_R.write(0.1);
+        mypwm_L.write(0.1);
+    }
+
+
+}
+
 int main()
 {
     mypwm_R.period(0.01f);
@@ -89,7 +111,14 @@ int main()
     Digt0_L = 1;
     Digt1_L = 0;
 
+    float pulse_R = 0;
+    float pulse_L = 0;
+
     while(1){
+
+        float norm_F = Ain3.read();
+        float perc_F = norm_F * 100;
+        float volt_F = norm_F * VCC;
 
         float norm_R = Ain1.read();
         float perc_R = norm_R * 100;
@@ -99,11 +128,19 @@ int main()
         float perc_L = norm_L * 100;
         float volt_L = norm_L * VCC;
 
+        if(perc_F>=80){
+
+            L_R_control(perc_R,perc_L);
+
+        }else{
+
+        }
+
         float cont_val_R = PID_R(perc_R);
         float cont_val_L = PID_L(perc_L);
 
         mypwm_R.write(cont_val_R);
-        mypwm_R.write(cont_val_L);
+        mypwm_L.write(cont_val_L);
 
         printf("Analog_R = %3.1f, %3.2f, %3.2f\n",perc_R,norm_R,volt_R);
         printf("Analog_L = %3.1f, %3.2f, %3.2f\n",perc_L,norm_L,volt_L);
