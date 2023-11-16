@@ -22,7 +22,7 @@ DigitalOut Digt0_L(D3);
 DigitalOut Digt1_L(D5);
 PwmOut mypwm_L(D4);
 
-//DigitalOut Digt0_F(D6);    Maybe they do not need them 'cause Forward-photo is only the function which read white or brack
+//DigitalOut Digt0_F(D6);    Maybe they do not need 'cause Forward-photo is only the function which read white or brack
 //DigitalOut Digt1_F(D8);
 //PwmOut mypwm_F(D7);
 
