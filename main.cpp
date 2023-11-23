@@ -14,6 +14,30 @@
 #define KD                                                                   0.03
 #define target_value                                                         0.5
 
+class Counter {
+public:
+    Counter(PinName pin) : _interrupt(A1) {        // create the InterruptIn on the pin specified to Counter
+        _interrupt.rise(callback(this, &Counter::increment)); // attach increment function of this counter instance
+    }
+
+    void increment() {
+        _count++;
+    }
+
+    int read() {
+        _count_pre = _count;
+        _count = 0;
+        return _count_pre;
+    }
+
+private:
+    InterruptIn _interrupt;
+    volatile int _count;
+    volatile int _count_pre;
+};
+
+Counter counter(D13);
+
 DigitalOut Digt0_R(D0);
 DigitalOut Digt1_R(D2);
 PwmOut mypwm_R(D1);
@@ -21,10 +45,6 @@ PwmOut mypwm_R(D1);
 DigitalOut Digt0_L(D3);
 DigitalOut Digt1_L(D5);
 PwmOut mypwm_L(D4);
-
-//DigitalOut Digt0_F(D6);    Maybe they do not need 'cause Forward-photo is only the function which read white or brack
-//DigitalOut Digt1_F(D8);
-//PwmOut mypwm_F(D7);
 
 AnalogIn Ain1(A0);   // R
 AnalogIn Ain2(A1);   // L
@@ -142,9 +162,9 @@ int main()
         mypwm_R.write(cont_val_R);
         mypwm_L.write(cont_val_L);
 
-        printf("Analog_R = %3.1f, %3.2f, %3.2f\n",perc_R,norm_R,volt_R);
-        printf("Analog_L = %3.1f, %3.2f, %3.2f\n",perc_L,norm_L,volt_L);
-        printf("control_R = %3.1f,control_L = %3.1f\n",cont_val_R,cont_val_L);
+        //printf("Analog_R = %3.1f, %3.2f, %3.2f\n",perc_R,norm_R,volt_R);
+        //printf("Analog_L = %3.1f, %3.2f, %3.2f\n",perc_L,norm_L,volt_L);
+        //printf("control_R = %3.1f,control_L = %3.1f\n",cont_val_R,cont_val_L);
         thread_sleep_for(BLINKING_RATE_MS1);
     }
 }
