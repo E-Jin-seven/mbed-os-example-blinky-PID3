@@ -8,11 +8,16 @@
 
 #define BLINKING_RATE_MS1                                                    10
 #define VCC (3.3)
+
 #define delta                                                                0.01
 #define KP                                                                   0.3
 #define KI                                                                   1.0
 #define KD                                                                   0.03
-#define target_value                                                         0.5
+#define PV1                                                                  0.3 //速度指定
+#define PV2                                                                  0.7 //速度指定
+#define PPR                                                                  10
+#define G                                                                    1
+#define r                                                                    10
 
 class Counter {
 public:
@@ -36,7 +41,8 @@ private:
     volatile int _count_pre;
 };
 
-Counter counter(D13);
+Counter counter_R(D13);
+Counter counter_L(D13);
 
 DigitalOut Digt0_R(D0);
 DigitalOut Digt1_R(D2);
@@ -50,6 +56,33 @@ AnalogIn Ain1(A0);   // R
 AnalogIn Ain2(A1);   // L
 AnalogIn Ain3(A2);   // F
 
+float inverse_function(float vero){
+    float D_pwm = 0;
+
+    //printf("D_pwm = %lf\n",D_pwm);
+    return D_pwm;
+}
+
+float v_R(){
+
+    float p_R     = counter_R.read();
+    float omega_R = (2 * 3.14 * p_R * G) / (PPR * delta);
+    float v_R     = r * omega_R;
+    //printf("v_R = %lf\n",v_R);
+
+    return v_R;
+}
+
+float v_L(){
+
+    float p_L     = counter_L.read();
+    float omega_L = (2 * 3.14 * p_L * G) / (PPR * delta);
+    float v_L     = r * omega_L;
+    //printf("v_L = %lf\n",v_L);
+
+    return v_L;
+}
+
 float max_min_control(float cont_val){
 
     if(cont_val>1){
@@ -58,10 +91,11 @@ float max_min_control(float cont_val){
         cont_val = 0.1;
     }
 
+    //printf("cont_val = %lf\n",cont_val);
     return cont_val;
 }
 
-float PID_R(float perc_R){
+float PID_R(float PV){
     
     float p = 0;
     float i = 0;
@@ -70,17 +104,19 @@ float PID_R(float perc_R){
     float integ = 0;
 
     value[0] = value[1];
-    value[1] = target_value - (perc_R/100);          /// 本来と逆にしてある
+    value[1] = PV - v_R();          
     integ   += (value[0]+value[1]) / 2 * delta;
 
     p = KP * value[1];
     i = KI * integ;
     d = KD * (value[1]-value[0]) / delta;
 
-    return max_min_control(p+i+d);
+    //printf("R_pid = %lf\n",p+i+d);
+
+    return max_min_control( inverse_function(p+i+d) );
 }
 
-float PID_L(float perc_L){
+float PID_L(float PV){
     
     float p = 0;
     float i = 0;
@@ -89,36 +125,38 @@ float PID_L(float perc_L){
     float integ = 0;
 
     value[0] = value[1];
-    value[1] = target_value - (perc_L/100);          /// 本来と逆にしてある
+    value[1] = PV - v_L();          
     integ   += (value[0]+value[1]) / 2 * delta;
 
     p = KP * value[1];
     i = KI * integ;
     d = KD * (value[1]-value[0]) / delta;
 
-    return max_min_control(p+i+d);
+    return max_min_control( inverse_function(p+i+d) );
 }
 
 void L_R_control(float perc_R,float perc_L){
 
     if( (perc_R<20) && (perc_L<20) ){
 
-        mypwm_R.write(0.5);
-        mypwm_L.write(0.5);
+        mypwm_R.write(0.7);
+        mypwm_L.write(0.7);
     }
     else if( perc_R < perc_L ){
 
+        mypwm_R.write( PID_R(PV2) );
+        mypwm_L.write( PID_L(PV1) );
     }
     else if( perc_R > perc_L ){
 
+        mypwm_R.write( PID_R(PV1) );
+        mypwm_L.write( PID_L(PV2) );
     }
     else{
 
         mypwm_R.write(0.1);
         mypwm_L.write(0.1);
     }
-
-
 }
 
 int main()
@@ -130,9 +168,6 @@ int main()
     mypwm_L.period(0.01f);
     Digt0_L = 1;
     Digt1_L = 0;
-
-    float pulse_R = 0;
-    float pulse_L = 0;
 
     while(1){
 
@@ -149,18 +184,12 @@ int main()
         float volt_L = norm_L * VCC;
 
         if(perc_F>=80){
-
             L_R_control(perc_R,perc_L);
-
-        }else{
-
         }
-
-        float cont_val_R = PID_R(perc_R);
-        float cont_val_L = PID_L(perc_L);
-
-        mypwm_R.write(cont_val_R);
-        mypwm_L.write(cont_val_L);
+        else{
+            mypwm_R.write(0.1);
+            mypwm_L.write(0.1);
+        }
 
         //printf("Analog_R = %3.1f, %3.2f, %3.2f\n",perc_R,norm_R,volt_R);
         //printf("Analog_L = %3.1f, %3.2f, %3.2f\n",perc_L,norm_L,volt_L);
