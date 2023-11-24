@@ -41,20 +41,18 @@ private:
     volatile int _count_pre;
 };
 
-Counter counter_R(D13);
-Counter counter_L(D13);
+Counter counter_R(D13);     //?
+Counter counter_L(D13);     //?
 
-DigitalOut Digt0_R(D0);
 DigitalOut Digt1_R(D2);
 PwmOut mypwm_R(D1);
 
-DigitalOut Digt0_L(D3);
 DigitalOut Digt1_L(D5);
-PwmOut mypwm_L(D4);
+PwmOut mypwm_L(D9);
 
-AnalogIn Ain1(A0);   // R
-AnalogIn Ain2(A1);   // L
-AnalogIn Ain3(A2);   // F
+AnalogIn Ain1(A1);
+AnalogIn Ain2(A2);
+AnalogIn Ain3(A0);
 
 float inverse_function(float vero){
     float D_pwm = 0;
@@ -162,11 +160,9 @@ void L_R_control(float perc_R,float perc_L){
 int main()
 {
     mypwm_R.period(0.01f);
-    Digt0_R = 1;
     Digt1_R = 0;
 
     mypwm_L.period(0.01f);
-    Digt0_L = 1;
     Digt1_L = 0;
 
     while(1){
