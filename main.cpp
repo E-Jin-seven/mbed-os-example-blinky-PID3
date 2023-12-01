@@ -5,6 +5,7 @@
 
 #include "mbed.h"
 #include "platform/mbed_thread.h"
+#include <math.h>
 
 #define BLINKING_RATE_MS1                                                    10
 #define VCC (3.3)
@@ -16,7 +17,7 @@
 #define PV1                                                                  0.3 //速度指定
 #define PV2                                                                  0.7 //速度指定
 #define PPR                                                                  10
-#define G                                                                    1
+#define G                                                                    1/38.2
 #define r                                                                    10
 
 class Counter {
