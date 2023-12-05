@@ -5,45 +5,66 @@
 
 #include "mbed.h"
 #include "platform/mbed_thread.h"
-#include <math.h>
 
 #define BLINKING_RATE_MS1                                                    10
 #define VCC (3.3)
 
-#define delta                                                                0.01
+#define delta                                                                1
 #define KP                                                                   0.3
 #define KI                                                                   1.0
 #define KD                                                                   0.03
 #define PV1                                                                  0.3 //速度指定
 #define PV2                                                                  0.7 //速度指定
-#define PPR                                                                  10
+#define PPR                                                                  20
 #define G                                                                    1/38.2
-#define r                                                                    10
+#define r                                                                    27.5
 
-class Counter {
+class Counter_R {
 public:
-    Counter(PinName pin) : _interrupt(A1) {        // create the InterruptIn on the pin specified to Counter
-        _interrupt.rise(callback(this, &Counter::increment)); // attach increment function of this counter instance
+    Counter_R(PinName pin) : _interrupt(A6) {        // create the InterruptIn on the pin specified to Counter
+        _interrupt.rise(callback(this, &Counter_R::increment)); // attach increment function of this counter instance
     }
 
     void increment() {
-        _count++;
+        _count_R++;
     }
 
-    int read() {
-        _count_pre = _count;
-        _count = 0;
-        return _count_pre;
+    float read() {
+        _count_pre_R = _count_R;
+        _count_R = 0;
+        return _count_pre_R;
     }
 
 private:
     InterruptIn _interrupt;
-    volatile int _count;
-    volatile int _count_pre;
+    volatile float _count_pre_R;
+    volatile float _count_R;
 };
 
-Counter counter_R(D13);     //?
-Counter counter_L(D13);     //?
+class Counter_L {
+public:
+    Counter_L(PinName pin) : _interrupt(A4) {        // create the InterruptIn on the pin specified to Counter
+        _interrupt.rise(callback(this, &Counter_L::increment)); // attach increment function of this counter instance
+    }
+
+    void increment() {
+        _count_L++;
+    }
+
+    float read() {
+        _count_pre_L = _count_L;
+        _count_L = 0;
+        return _count_pre_L;
+    }
+
+private:
+    InterruptIn _interrupt;
+    volatile float _count_pre_L;
+    volatile float _count_L;
+};
+
+Counter_R counter_R(D13);
+Counter_L counter_L(D13);
 
 DigitalOut Digt1_R(D2);
 PwmOut mypwm_R(D1);
@@ -55,6 +76,11 @@ AnalogIn Ain1(A1);
 AnalogIn Ain2(A2);
 AnalogIn Ain3(A0);
 
+float value_R[2] = {};
+float integ_R = 0;
+float value_L[2] = {};
+float integ_L = 0;
+
 float inverse_function(float vero){
     float D_pwm = 0;
 
@@ -64,8 +90,8 @@ float inverse_function(float vero){
 
 float v_R(){
 
-    float p_R     = counter_R.read();
-    float omega_R = (2 * 3.14 * p_R * G) / (PPR * delta);
+    //float p_R     = counter_R.read();
+    float omega_R = (2 * 3.14 * counter_R.read() * G) / (PPR * delta);
     float v_R     = r * omega_R;
     //printf("v_R = %lf\n",v_R);
 
@@ -74,8 +100,8 @@ float v_R(){
 
 float v_L(){
 
-    float p_L     = counter_L.read();
-    float omega_L = (2 * 3.14 * p_L * G) / (PPR * delta);
+    //float p_L     = counter_L.read();
+    float omega_L = (2 * 3.14 * counter_L.read() * G) / (PPR * delta);
     float v_L     = r * omega_L;
     //printf("v_L = %lf\n",v_L);
 
@@ -99,16 +125,14 @@ float PID_R(float PV){
     float p = 0;
     float i = 0;
     float d = 0;
-    float value[2] = {};
-    float integ = 0;
 
-    value[0] = value[1];
-    value[1] = PV - v_R();          
-    integ   += (value[0]+value[1]) / 2 * delta;
+    value_R[0] = value_R[1];
+    value_R[1] = PV - v_R();          
+    integ_R   += (value_R[0]+value_R[1]) / 2 * delta;
 
-    p = KP * value[1];
-    i = KI * integ;
-    d = KD * (value[1]-value[0]) / delta;
+    p = KP * value_R[1];
+    i = KI * integ_R;
+    d = KD * (value_R[1]-value_R[0]) / delta;
 
     //printf("R_pid = %lf\n",p+i+d);
 
@@ -120,16 +144,14 @@ float PID_L(float PV){
     float p = 0;
     float i = 0;
     float d = 0;
-    float value[2] = {};
-    float integ = 0;
 
-    value[0] = value[1];
-    value[1] = PV - v_L();          
-    integ   += (value[0]+value[1]) / 2 * delta;
+    value_L[0] = value_L[1];
+    value_L[1] = PV - v_L();          
+    integ_L   += (value_L[0]+value_L[1]) / 2 * delta;
 
-    p = KP * value[1];
-    i = KI * integ;
-    d = KD * (value[1]-value[0]) / delta;
+    p = KP * value_L[1];
+    i = KI * integ_L;
+    d = KD * (value_L[1]-value_L[0]) / delta;
 
     return max_min_control( inverse_function(p+i+d) );
 }
