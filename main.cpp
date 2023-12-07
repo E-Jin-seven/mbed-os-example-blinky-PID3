@@ -1,4 +1,4 @@
-///本番PID
+///本番PID-12/8
 
 #include "mbed.h"
 #include "platform/mbed_thread.h"
@@ -10,8 +10,10 @@
 #define KP                                                                   0.3
 #define KI                                                                   0.1
 #define KD                                                                   0.03
-#define PV1                                                                  0.3 //速度指定
-#define PV2                                                                  0.7 //速度指定
+#define PV_H                                                                 600 //速度指定
+#define PV_L                                                                 500 //速度指定
+#define C_PV_H                                                               700  //速度指定
+#define C_PV_L                                                               500  //速度指定
 #define PPR                                                                  20
 #define G                                                                    1/38.2
 #define r                                                                    27.5
@@ -63,11 +65,11 @@ private:
 Counter_R counter_R(D13);
 Counter_L counter_L(D13);
 
-DigitalOut Digt1_R(D2);
-PwmOut mypwm_R(D1);
+DigitalOut Digt1_R(D5);
+PwmOut mypwm_R(D9);
 
-DigitalOut Digt1_L(D5);
-PwmOut mypwm_L(D9);
+DigitalOut Digt1_L(D2);
+PwmOut mypwm_L(D1);
 
 AnalogIn Ain1(A1);
 AnalogIn Ain2(A2);
@@ -168,24 +170,34 @@ void L_R_control(float perc_R,float perc_L){
 
     if( (perc_R<20) && (perc_L<20) ){
 
-        mypwm_R.write(0.7);
-        mypwm_L.write(0.7);
+        mypwm_R.write(inverse_function_L(600));
+        mypwm_L.write(inverse_function_L(600));
     }
     else if( perc_R < perc_L ){
 
-        mypwm_R.write( PID_R(PV2) );
-        mypwm_L.write( PID_L(PV1) );
+        mypwm_R.write( PID_R(PV_L) );
+        mypwm_L.write( PID_L(PV_H) );
     }
     else if( perc_R > perc_L ){
 
-        mypwm_R.write( PID_R(PV1) );
-        mypwm_L.write( PID_L(PV2) );
+        mypwm_R.write( PID_R(PV_H) );
+        mypwm_L.write( PID_L(PV_L) );
     }
-    else{
+}
 
-        mypwm_R.write(0.1);
-        mypwm_L.write(0.1);
+void comeback_function(float perc_R,float perc_L){
+
+    if( perc_R < perc_L ){
+
+        mypwm_R.write( C_PV_L );
+        mypwm_L.write( C_PV_H );
     }
+    else if( perc_R > perc_L ){
+
+        mypwm_R.write( C_PV_H );
+        mypwm_L.write( C_PV_L );
+    }
+
 }
 
 int main()
@@ -200,22 +212,21 @@ int main()
 
         float norm_F = Ain3.read();
         float perc_F = norm_F * 100;
-        float volt_F = norm_F * VCC;
+        //float volt_F = norm_F * VCC;
 
         float norm_R = Ain1.read();
         float perc_R = norm_R * 100;
-        float volt_R = norm_R * VCC;
+        //float volt_R = norm_R * VCC;
 
         float norm_L = Ain2.read();
         float perc_L = norm_L * 100;
-        float volt_L = norm_L * VCC;
+        //float volt_L = norm_L * VCC;
 
         if(perc_F>=80){
             L_R_control(perc_R,perc_L);
         }
         else{
-            mypwm_R.write(inverse_function_R(15));
-            mypwm_L.write(inverse_function_L(15));
+            comeback_function(perc_R,perc_L); 
         }
 
         //printf("Analog_R = %3.1f, %3.2f, %3.2f\n",perc_R,norm_R,volt_R);
