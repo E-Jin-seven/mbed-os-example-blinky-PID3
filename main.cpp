@@ -81,7 +81,7 @@ float integ_L = 0;
 float inverse_function_R(float vero){
     float D_pwm = 0;
 
-    D_pwm = ( vero - 0.34) / 29.7;
+    D_pwm = ( vero + 6.937) / 1175.8;
 
     //printf("D_pwm = %lf\n",D_pwm);
     return D_pwm;
@@ -90,7 +90,7 @@ float inverse_function_R(float vero){
 float inverse_function_L(float vero){
     float D_pwm = 0;
 
-    D_pwm = ( vero - 0.16) / 30.1;
+    D_pwm = ( vero - 11.855) / 1026.1;
 
     //printf("D_pwm = %lf\n",D_pwm);
     return D_pwm;
@@ -132,7 +132,7 @@ float PID_R(float PV){
     
     float p = 0;
     float i = 0;
-    float d = 0;
+    //float d = 0;
 
     value_R[0] = value_R[1];
     value_R[1] = PV - v_R();          
@@ -140,18 +140,18 @@ float PID_R(float PV){
 
     p = KP * value_R[1];
     i = KI * integ_R;
-    d = KD * (value_R[1]-value_R[0]) / delta;
+    //d = KD * (value_R[1]-value_R[0]) / delta;
 
     //printf("R_pid = %lf\n",p+i+d);
 
-    return max_min_control( inverse_function_R(p+i+d) );
+    return max_min_control( inverse_function_R(p+i) );
 }
 
 float PID_L(float PV){
     
     float p = 0;
     float i = 0;
-    float d = 0;
+    //float d = 0;
 
     value_L[0] = value_L[1];
     value_L[1] = PV - v_L();          
@@ -159,9 +159,9 @@ float PID_L(float PV){
 
     p = KP * value_L[1];
     i = KI * integ_L;
-    d = KD * (value_L[1]-value_L[0]) / delta;
+    //d = KD * (value_L[1]-value_L[0]) / delta;
 
-    return max_min_control( inverse_function_L(p+i+d) );
+    return max_min_control( inverse_function_L(p+i) );
 }
 
 void L_R_control(float perc_R,float perc_L){
