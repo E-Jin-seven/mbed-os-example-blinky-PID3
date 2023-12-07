@@ -1,7 +1,4 @@
-/* mbed Microcontroller Library
- * Copyright (c) 2019 ARM Limited
- * SPDX-License-Identifier: Apache-2.0
- */
+///本番PID
 
 #include "mbed.h"
 #include "platform/mbed_thread.h"
@@ -11,7 +8,7 @@
 
 #define delta                                                                1
 #define KP                                                                   0.3
-#define KI                                                                   1.0
+#define KI                                                                   0.1
 #define KD                                                                   0.03
 #define PV1                                                                  0.3 //速度指定
 #define PV2                                                                  0.7 //速度指定
@@ -104,7 +101,7 @@ float v_R(){
     //float p_R     = counter_R.read();
     float omega_R = (2 * 3.14 * counter_R.read() * G) / (PPR * delta);
     float v_R     = r * omega_R;
-    //printf("v_R = %lf\n",v_R);
+    printf("v_R = %lf\n",v_R);
 
     return v_R;
 }
@@ -114,7 +111,7 @@ float v_L(){
     //float p_L     = counter_L.read();
     float omega_L = (2 * 3.14 * counter_L.read() * G) / (PPR * delta);
     float v_L     = r * omega_L;
-    //printf("v_L = %lf\n",v_L);
+    printf("v_L = %lf\n",v_L);
 
     return v_L;
 }
@@ -217,8 +214,8 @@ int main()
             L_R_control(perc_R,perc_L);
         }
         else{
-            mypwm_R.write(0.1);
-            mypwm_L.write(0.1);
+            mypwm_R.write(inverse_function_R(15));
+            mypwm_L.write(inverse_function_L(15));
         }
 
         //printf("Analog_R = %3.1f, %3.2f, %3.2f\n",perc_R,norm_R,volt_R);
