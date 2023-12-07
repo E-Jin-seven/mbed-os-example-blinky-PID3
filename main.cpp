@@ -6,7 +6,7 @@
 #define BLINKING_RATE_MS1                                                    10
 #define VCC (3.3)
 
-#define delta                                                                1
+#define delta                                                                0.01
 #define KP                                                                   0.3
 #define KI                                                                   0.1
 #define KD                                                                   0.03
