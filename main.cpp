@@ -1,4 +1,4 @@
-///本番PID-12/8
+///本番PID-12/11
 
 #include "mbed.h"
 #include "platform/mbed_thread.h"
@@ -6,14 +6,14 @@
 #define BLINKING_RATE_MS1                                                    10
 #define VCC (3.3)
 
-#define delta                                                                0.01
+#define delta                                                                1
 #define KP                                                                   0.3
 #define KI                                                                   0.1
 #define KD                                                                   0.03
-#define PV_H                                                                 600 //速度指定
-#define PV_L                                                                 500 //速度指定
-#define C_PV_H                                                               700  //速度指定
-#define C_PV_L                                                               500  //速度指定
+#define PV_H                                                                 500 
+#define PV_L                                                                 300 
+#define C_PV_H                                                               600 
+#define C_PV_L                                                               400  
 #define PPR                                                                  20
 #define G                                                                    1/38.2
 #define r                                                                    27.5
@@ -81,21 +81,21 @@ float value_L[2] = {};
 float integ_L = 0;
 
 float inverse_function_R(float vero){
-    float D_pwm = 0;
+    float DR_pwm = 0;
 
-    D_pwm = ( vero + 6.937) / 1175.8;
+    DR_pwm = ( vero + 6.937) / 1175.8;
 
-    //printf("D_pwm = %lf\n",D_pwm);
-    return D_pwm;
+    printf("DR_pwm = %lf\n",DR_pwm);
+    return DR_pwm;
 }
 
 float inverse_function_L(float vero){
-    float D_pwm = 0;
+    float DL_pwm = 0;
 
-    D_pwm = ( vero - 11.855) / 1026.1;
+    DL_pwm = ( vero - 11.855) / 1026.1;
 
-    //printf("D_pwm = %lf\n",D_pwm);
-    return D_pwm;
+    printf("DL_pwm = %lf\n",DL_pwm);
+    return DL_pwm;
 }
 
 float v_R(){
@@ -135,18 +135,19 @@ float PID_R(float PV){
     float p = 0;
     float i = 0;
     //float d = 0;
+    float V_R = v_R();
 
     value_R[0] = value_R[1];
-    value_R[1] = PV - v_R();          
+    value_R[1] = PV - V_R;          
     integ_R   += (value_R[0]+value_R[1]) / 2 * delta;
 
     p = KP * value_R[1];
     i = KI * integ_R;
     //d = KD * (value_R[1]-value_R[0]) / delta;
 
-    //printf("R_pid = %lf\n",p+i+d);
+    printf("R_pid = %lf\n",p+i);
 
-    return max_min_control( inverse_function_R(p+i) );
+    return max_min_control( inverse_function_R(p+i+V_R) );
 }
 
 float PID_L(float PV){
@@ -154,16 +155,19 @@ float PID_L(float PV){
     float p = 0;
     float i = 0;
     //float d = 0;
+    float V_L = v_L();
 
     value_L[0] = value_L[1];
-    value_L[1] = PV - v_L();          
+    value_L[1] = PV - V_L;          
     integ_L   += (value_L[0]+value_L[1]) / 2 * delta;
 
     p = KP * value_L[1];
     i = KI * integ_L;
     //d = KD * (value_L[1]-value_L[0]) / delta;
 
-    return max_min_control( inverse_function_L(p+i) );
+    printf("L_pid = %lf\n",p+i);
+
+    return max_min_control( inverse_function_L(p+i+V_L) );
 }
 
 void L_R_control(float perc_R,float perc_L){
@@ -175,13 +179,13 @@ void L_R_control(float perc_R,float perc_L){
     }
     else if( perc_R < perc_L ){
 
-        mypwm_R.write( PID_R(PV_L) );
-        mypwm_L.write( PID_L(PV_H) );
+        mypwm_R.write( PID_R(PV_H) );
+        mypwm_L.write( PID_L(PV_L) );
     }
     else if( perc_R > perc_L ){
 
-        mypwm_R.write( PID_R(PV_H) );
-        mypwm_L.write( PID_L(PV_L) );
+        mypwm_R.write( PID_R(PV_L) );
+        mypwm_L.write( PID_L(PV_H) );
     }
 }
 
@@ -189,13 +193,13 @@ void comeback_function(float perc_R,float perc_L){
 
     if( perc_R < perc_L ){
 
-        mypwm_R.write( C_PV_L );
-        mypwm_L.write( C_PV_H );
+        mypwm_R.write( inverse_function_L(C_PV_H) );
+        mypwm_L.write( inverse_function_L(C_PV_L) );
     }
     else if( perc_R > perc_L ){
 
-        mypwm_R.write( C_PV_H );
-        mypwm_L.write( C_PV_L );
+        mypwm_R.write( inverse_function_L(C_PV_L) );
+        mypwm_L.write( inverse_function_L(C_PV_H) );
     }
 
 }
@@ -212,15 +216,12 @@ int main()
 
         float norm_F = Ain3.read();
         float perc_F = norm_F * 100;
-        //float volt_F = norm_F * VCC;
 
         float norm_R = Ain1.read();
         float perc_R = norm_R * 100;
-        //float volt_R = norm_R * VCC;
 
         float norm_L = Ain2.read();
         float perc_L = norm_L * 100;
-        //float volt_L = norm_L * VCC;
 
         if(perc_F>=80){
             L_R_control(perc_R,perc_L);
@@ -229,9 +230,10 @@ int main()
             comeback_function(perc_R,perc_L); 
         }
 
-        //printf("Analog_R = %3.1f, %3.2f, %3.2f\n",perc_R,norm_R,volt_R);
-        //printf("Analog_L = %3.1f, %3.2f, %3.2f\n",perc_L,norm_L,volt_L);
-        //printf("control_R = %3.1f,control_L = %3.1f\n",cont_val_R,cont_val_L);
+        //printf("Analog_R = %3.1f, %3.2f\n",perc_R,norm_R);
+        //printf("Analog_L = %3.1f, %3.2f\n",perc_L,norm_L);
+        //printf("Analog_F = %3.1f, %3.2f\n",perc_F,norm_F);
+        printf("__________________________________________________n");
         thread_sleep_for(BLINKING_RATE_MS1);
     }
 }
