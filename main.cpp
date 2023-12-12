@@ -7,9 +7,9 @@
 #define VCC (3.3)
 
 #define delta                                                                1
-#define KP                                                                   0.3
-#define KI                                                                   0.1
-#define KD                                                                   0.03
+#define KP                                                                   0.01
+#define KI                                                                   0.01
+#define KD                                                                   0.01
 #define PV_H                                                                 500 
 #define PV_L                                                                 300 
 #define C_PV_H                                                               600 
@@ -134,7 +134,7 @@ float PID_R(float PV){
     
     float p = 0;
     float i = 0;
-    //float d = 0;
+    float d = 0;
     float V_R = v_R();
 
     value_R[0] = value_R[1];
@@ -143,18 +143,18 @@ float PID_R(float PV){
 
     p = KP * value_R[1];
     i = KI * integ_R;
-    //d = KD * (value_R[1]-value_R[0]) / delta;
+    d = KD * (value_R[1]-value_R[0]) / delta;
 
     printf("R_pid = %lf\n",p+i);
 
-    return max_min_control( inverse_function_R(p+i+V_R) );
+    return max_min_control( inverse_function_R(p+i+d+V_R) );
 }
 
 float PID_L(float PV){
     
     float p = 0;
     float i = 0;
-    //float d = 0;
+    float d = 0;
     float V_L = v_L();
 
     value_L[0] = value_L[1];
@@ -163,11 +163,11 @@ float PID_L(float PV){
 
     p = KP * value_L[1];
     i = KI * integ_L;
-    //d = KD * (value_L[1]-value_L[0]) / delta;
+    d = KD * (value_L[1]-value_L[0]) / delta;
 
     printf("L_pid = %lf\n",p+i);
 
-    return max_min_control( inverse_function_L(p+i+V_L) );
+    return max_min_control( inverse_function_L(p+i+d+V_L) );
 }
 
 void L_R_control(float perc_R,float perc_L){
@@ -206,10 +206,10 @@ void comeback_function(float perc_R,float perc_L){
 
 int main()
 {
-    mypwm_R.period(0.01f);
+    mypwm_R.period(0.001f);
     Digt1_R = 0;
 
-    mypwm_L.period(0.01f);
+    mypwm_L.period(0.001f);
     Digt1_L = 0;
 
     while(1){
